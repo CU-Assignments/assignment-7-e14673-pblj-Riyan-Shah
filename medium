@@ -1,0 +1,100 @@
+import java.sql.*;
+import java.util.Scanner;
+public class ProductCRUD {
+    static final String URL = "jdbc:mysql://localhost:3306/your_database";
+    static final String USER = "your_username";
+    static final String PASS = "your_password";
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        try (Connection conn = DriverManager.getConnection(URL, USER, PASS)) {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            conn.setAutoCommit(false);
+            while (true) {
+                System.out.println("\n1. Create Product\n2. Read Products\n3. Update Product\n4. Delete Product\n5. Exit");
+                System.out.print("Choose option: ");
+                int choice = sc.nextInt();
+                sc.nextLine();
+                try {
+                    switch (choice) {
+                        case 1:
+                            System.out.print("Product Name: ");
+                            String name = sc.nextLine();
+                            System.out.print("Price: ");
+                            double price = sc.nextDouble();
+                            System.out.print("Quantity: ");
+                            int qty = sc.nextInt();
+                            String insertSQL = "INSERT INTO Product (ProductName, Price, Quantity) VALUES (?, ?, ?)";
+                            try (PreparedStatement ps = conn.prepareStatement(insertSQL)) {
+                                ps.setString(1, name);
+                                ps.setDouble(2, price);
+                                ps.setInt(3, qty);
+                                ps.executeUpdate();
+                            }
+                            conn.commit();
+                            System.out.println("Product added.");
+                            break;
+                        case 2:
+                            String selectSQL = "SELECT * FROM Product";
+                            try (Statement stmt = conn.createStatement();
+                                 ResultSet rs = stmt.executeQuery(selectSQL)) {
+                                System.out.println("ID\tName\t\tPrice\tQuantity");
+                                while (rs.next()) {
+                                    System.out.printf("%d\t%-15s%.2f\t%d\n",
+                                            rs.getInt("ProductID"),
+                                            rs.getString("ProductName"),
+                                            rs.getDouble("Price"),
+                                            rs.getInt("Quantity"));
+                                }
+                            }
+                            break;
+                        case 3:
+                            System.out.print("Product ID to update: ");
+                            int updId = sc.nextInt();
+                            sc.nextLine();
+                            System.out.print("New Name: ");
+                            String newName = sc.nextLine();
+                            System.out.print("New Price: ");
+                            double newPrice = sc.nextDouble();
+                            System.out.print("New Quantity: ");
+                            int newQty = sc.nextInt();
+                            String updateSQL = "UPDATE Product SET ProductName=?, Price=?, Quantity=? WHERE ProductID=?";
+                            try (PreparedStatement ps = conn.prepareStatement(updateSQL)) {
+                                ps.setString(1, newName);
+                                ps.setDouble(2, newPrice);
+                                ps.setInt(3, newQty);
+                                ps.setInt(4, updId);
+                                ps.executeUpdate();
+                            }
+                            conn.commit();
+                            System.out.println("Product updated.");
+                            break;
+                        case 4:
+                            System.out.print("Product ID to delete: ");
+                            int delId = sc.nextInt();
+                            String deleteSQL = "DELETE FROM Product WHERE ProductID=?";
+                            try (PreparedStatement ps = conn.prepareStatement(deleteSQL)) {
+                                ps.setInt(1, delId);
+                                ps.executeUpdate();
+                            }
+                            conn.commit();
+                            System.out.println("Product deleted.");
+                            break;
+                        case 5:
+                            conn.close();
+                            sc.close();
+                            System.exit(0);
+                            break;
+                        default:
+                            System.out.println("Invalid choice.");
+                    }
+                } catch (Exception e) {
+                    conn.rollback();
+                    System.out.println("Error occurred. Transaction rolled back.");
+                    e.printStackTrace();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
